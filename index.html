@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Игра для Дианы 💖</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+
+        /* ========== СТАРТОВЫЙ ЭКРАН ========== */
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        #start {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        #start .heart {
+            font-size: 80px;
+            animation: beat 1.5s infinite;
+        }
+
+        #start h1 {
+            font-size: 2.5em;
+            color: white;
+            margin: 15px 0 5px;
+        }
+
+        #start p {
+            font-size: 1.3em;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 15px 45px;
+            font-size: 1.2em;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #ff6b9d, #ff2d55);
+            color: white;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        @keyframes beat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        /* ========== ИГРОВОЙ ЭКРАН ========== */
+        #game {
+            background: linear-gradient(180deg, #1a1a2e, #16213e, #0f3460);
+            display: none;
+        }
+
+        .panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.4);
+            color: white;
+            font-size: 1.2em;
+            z-index: 10;
+        }
+
+        .panel span {
+            font-weight: bold;
+        }
+
+        #scoreText { color: #ff6b9d; }
+        #timerText { color: #ffd700; }
+
+        .heart-item {
+            position: absolute;
+            font-size: 35px;
+            cursor: pointer;
+            user-select: none;
+            z-index: 5;
+        }
+
+        .pop {
+            position: absolute;
+            color: #ff6b9d;
+            font-size: 1.4em;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* ========== ФИНАЛЬНЫЙ ЭКРАН ========== */
+        #final {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            display: none;
+        }
+
+        #final .heart {
+            font-size: 100px;
+            animation: beat 1.5s infinite;
+        }
+
+        #final h1 {
+            font-size: 2.5em;
+            color: #ff6b9d;
+            margin: 15px 0;
+        }
+
+        #final .msg {
+            font-size: 1.4em;
+            color: white;
+            line-height: 1.8;
+            max-width: 500px;
+            margin-bottom: 25px;
+        }
+
+        #final .stats {
+            color: rgba(255,255,255,0.6);
+            font-size: 1em;
+            margin-bottom: 25px;
+        }
+
+        .btn2 {
+            padding: 12px 35px;
+            font-size: 1.1em;
+            border: 2px solid #ff6b9d;
+            border-radius: 50px;
+            background: transparent;
+            color: #ff6b9d;
+            cursor: pointer;
+        }
+
+        .btn2:hover {
+            background: #ff6b9d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- СТАРТ -->
+    <div class="screen" id="start">
+        <div class="heart">💖</div>
+        <h1>Диана</h1>
+        <p>Эта игра создана для тебя ✨</p>
+        <button class="btn" id="startBtn">Начать игру 💕</button>
+    </div>
+
+    <!-- ИГРА -->
+    <div class="screen" id="game">
+        <div class="panel">
+            <div>💖 <span id="scoreText">0 / 20</span></div>
+            <div>⏱ <span id="timerText">30</span></div>
+        </div>
+    </div>
+
+    <!-- ФИНАЛ -->
+    <div class="screen" id="final">
+        <div class="heart">💖</div>
+        <h1>Диана, ты лучшая! 💕</h1>
+        <div class="msg">
+            Ты собрала все сердечки!<br><br>
+            Каждое из них — моё чувство к тебе.<br>
+            Ты делаешь мой мир ярче и счастливее.<br><br>
+            <strong>Я тебя очень люблю ❤️</strong>
+        </div>
+        <div class="stats" id="statsText"></div>
+        <button class="btn2" id="restartBtn">Играть ещё раз 🔄</button>
+    </div>
+
+    <script>
+        // ===== ПЕРЕМЕННЫЕ =====
+        var score = 0;
+        var target = 20;
+        var timeLeft = 30;
+        var timer = null;
+        var spawner = null;
+        var hearts = [];
+
+        // ===== КНОПКИ =====
+        document.getElementById('startBtn').onclick = function() {
+            document.getElementById('start').style.display = 'none';
+            document.getElementById('game').style.display = 'flex';
+            startGame();
+        };
+
+        document.getElementById('restartBtn').onclick = function() {
+            document.getElementById('final').style.display = 'none';
+            document.getElementById('game').style.display = 'flex';
+            startGame();
+        };
+
+        // ===== СТАРТ ИГРЫ =====
+        function startGame() {
+            score = 0;
+            timeLeft = 30;
+            updateScore();
+            updateTimer();
+
+            // убираем старые сердечки
+            var old = document.querySelectorAll('.heart-item');
+            for (var i = 0; i < old.length; i++) {
+                old[i].remove();
+            }
+
+            // таймер обратного отсчёта
+            clearInterval(timer);
+            timer = setInterval(function() {
+                timeLeft--;
+                updateTimer();
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+
+            // спавн сердечек
+            clearInterval(spawner);
+            spawner = setInterval(function() {
+                createHeart();
+            }, 800);
+
+            // первые 3 сердечка сразу
+            createHeart();
+            createHeart();
+            createHeart();
+        }
+
+        // ===== СОЗДАНИЕ СЕРДЕЧКА =====
+        function createHeart() {
+            var h = document.createElement('div');
+            h.className = 'heart-item';
+
+            // тип
+            var r = Math.random();
+            if (r < 0.1) {
+                h.textContent = '💛';
+                h.dataset.points = '3';
+            } else if (r < 0.2) {
+                h.textContent = '💔';
+                h.dataset.points = '-1';
+            } else if (r < 0.6) {
+                h.textContent = '❤️';
+                h.dataset.points = '1';
+            } else {
+                h.textContent = '💕';
+                h.dataset.points = '1';
+            }
+
+            // начальная позиция
+            var x = Math.random() * (window.innerWidth - 50);
+            h.style.left = x + 'px';
+            h.style.top = '-50px';
+
+            // клик
+            h.onclick = function() {
+                collectHeart(h);
+            };
+
+            document.getElementById('game').appendChild(h);
+
+            // падение
+            var posY = -50;
+            var speed = 2 + Math.random() * 2;
+
+            function fall() {
+                posY = posY + speed;
+                h.style.top = posY + 'px';
+
+                if (posY > window.innerHeight + 50) {
+                    h.remove();
+                    return;
+                }
+
+                if (h.parentNode) {
+                    requestAnimationFrame(fall);
+                }
+            }
+
+            requestAnimationFrame(fall);
+        }
+
+        // ===== СБОР СЕРДЕЧКА =====
+        function collectHeart(h) {
+            var pts = parseInt(h.dataset.points);
+            score = score + pts;
+            if (score < 0) score = 0;
+
+            // эффект
+            var pop = document.createElement('div');
+            pop.className = 'pop';
+
+            if (pts > 0) {
+                pop.textContent = '+' + pts + ' 💖';
+                pop.style.color = pts >= 3 ? '#ffd700' : '#ff6b9d';
+            } else {
+                pop.textContent = pts + ' 💔';
+                pop.style.color = '#888';
+            }
+
+            pop.style.left = h.style.left;
+            pop.style.top = h.style.top;
+            document.getElementById('game').appendChild(pop);
+
+            // анимация текста вверх
+            var popY = parseInt(h.style.top);
+            var opacity = 1;
+
+            function animPop() {
+                popY = popY - 2;
+                opacity = opacity - 0.02;
+                pop.style.top = popY + 'px';
+                pop.style.opacity = opacity;
+
+                if (opacity > 0) {
+                    requestAnimationFrame(animPop);
+                } else {
+                    pop.remove();
+                }
+            }
+
+            requestAnimationFrame(animPop);
+
+            // удаляем сердечко
+            h.remove();
+
+            updateScore();
+
+            // проверка победы
+            if (score >= target) {
+                endGame();
+            }
+        }
+
+        // ===== ОБНОВЛЕНИЕ СЧЁТА =====
+        function updateScore() {
+            document.getElementById('scoreText').textContent = score + ' / ' + target;
+        }
+
+        // ===== ОБНОВЛЕНИЕ ТАЙМЕРА =====
+        function updateTimer() {
+            document.getElementById('timerText').textContent = timeLeft;
+        }
+
+        // ===== КОНЕЦ ИГРЫ =====
+        function endGame() {
+            clearInterval(timer);
+            clearInterval(spawner);
+
+            // убираем сердечки
+            var old = document.querySelectorAll('.heart-item');
+            for (var i = 0; i < old.length; i++) {
+                old[i].remove();
+            }
+
+            // убираем попапы
+            var pops = document.querySelectorAll('.pop');
+            for (var j = 0; j < pops.length; j++) {
+                pops[j].remove();
+            }
+
+            document.getElementById('game').style.display = 'none';
+            document.getElementById('final').style.display = 'flex';
+
+            if (score >= target) {
+                document.getElementById('statsText').textContent =
+                    '🏆 Собрано: ' + score + ' сердечек за ' + (30 - timeLeft) + ' сек!';
+            } else {
+                document.getElementById('statsText').textContent =
+                    'Собрано: ' + score + ' / ' + target + ' — попробуй ещё раз! 💪';
+            }
+
+            // фейерверки
+            fireWorks();
+        }
+
+        // ===== ФЕЙЕРВЕРКИ =====
+        function fireWorks() {
+            var emojis = ['💖','✨','🌟','💕','⭐','🎉','💗'];
+            var count = 0;
+
+            var fwInterval = setInterval(function() {
+                for (var i = 0; i < 4; i++) {
+                    var fw = document.createElement('div');
+                    fw.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    fw.style.position = 'fixed';
+                    fw.style.left = Math.random() * 100 + '%';
+                    fw.style.top = Math.random() * 100 + '%';
+                    fw.style.fontSize = (20 + Math.random() * 40) + 'px';
+                    fw.style.pointerEvents = 'none';
+                    fw.style.zIndex = '9999';
+                    fw.style.transition = 'all 1.5s ease';
+                    document.body.appendChild(fw);
+
+                    setTimeout(function(el) {
+                        el.style.opacity = '0';
+                        el.style.transform = 'scale(2)';
+                    }, 50, fw);
+
+                    setTimeout(function(el) {
+                        el.remove();
+                    }, 1600, fw);
+                }
+
+                count++;
+                if (count > 15) {
+                    clearInterval(fwInterval);
+                }
+            }, 400);
+        }
+    </script>
+
+</body>
+</html>
